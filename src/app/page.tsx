@@ -69,7 +69,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   let total_gastos = 0
   const categoriesBreakdown: Record<string, { ingreso: number, gasto: number }> = {}
 
-  txs.forEach(tx => {
+  txs.forEach((tx: any) => {
     const amount = Number(tx.monto)
     if (tx.tipo === 'Ingreso') total_ingresos += amount
     else total_gastos += amount
