@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  app:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./:/app
+    ports:
+      - "3000:3000"
+    # El contenedor de Node se mantendrá activo y esperando comandos
+    # Aquí puedes correr tu servidor o script de inicialización
+    command: tail -f /dev/null
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/finanzas_db
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: finanzas_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Inicializa la BD con nuestras tablas
+
+volumes:
+  postgres_data:

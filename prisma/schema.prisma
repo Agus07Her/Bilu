@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model user {
+  id            Int             @id @default(autoincrement())
+  nombre        String?         @db.VarChar(255)
+  email         String          @unique @db.VarChar(255)
+  password      String          @db.VarChar(255)
+  
+  transacciones transacciones[]
+  categorias    categoria[]
+}
+
+model categoria {
+  id            Int             @id @default(autoincrement())
+  nombre        String          @db.VarChar(100)
+  userId        Int
+  user          user            @relation(fields: [userId], references: [id])
+  transacciones transacciones[]
+
+  @@unique([nombre, userId])
+}
+
+model productos {
+  id            Int             @id @default(autoincrement())
+  nombre        String          @db.VarChar(255)
+  precio_venta  Decimal         @db.Decimal(10, 2)
+  precio_costo  Decimal         @db.Decimal(10, 2)
+  stock_actual  Int             @default(0)
+  creado_en     DateTime?       @default(now()) @db.Timestamp(6)
+  transacciones transacciones[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model transacciones {
+  id           Int        @id @default(autoincrement())
+  tipo         String     @db.VarChar(10)
+  monto        Decimal    @db.Decimal(10, 2)
+  fecha        DateTime?  @default(now()) @db.Timestamp(6)
+  descripcion  String?
+  producto_id  Int?
+  userId       Int
+  user         user       @relation(fields: [userId], references: [id])
+  categoria_id Int?
+  categoria    categoria? @relation(fields: [categoria_id], references: [id])
+  productos    productos? @relation(fields: [producto_id], references: [id], onUpdate: NoAction)
+}

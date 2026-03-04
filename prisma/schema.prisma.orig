@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model productos {
+  id            Int             @id @default(autoincrement())
+  nombre        String          @db.VarChar(255)
+  precio_venta  Decimal         @db.Decimal(10, 2)
+  precio_costo  Decimal         @db.Decimal(10, 2)
+  stock_actual  Int             @default(0)
+  creado_en     DateTime?       @default(now()) @db.Timestamp(6)
+  transacciones transacciones[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model transacciones {
+  id          Int        @id @default(autoincrement())
+  tipo        String     @db.VarChar(10)
+  monto       Decimal    @db.Decimal(10, 2)
+  fecha       DateTime?  @default(now()) @db.Timestamp(6)
+  descripcion String?
+  producto_id Int?
+  productos   productos? @relation(fields: [producto_id], references: [id], onUpdate: NoAction)
+}
