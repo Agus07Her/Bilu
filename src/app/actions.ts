@@ -137,17 +137,25 @@ export async function registerUser(formData: FormData) {
                 password: hashedPassword,
             },
         })
+    } catch (err: any) {
+        console.error('Error creating user in registerUser:', err)
+        if (err.code === 'P2002') return { error: 'El email ya existe' }
+        return { error: 'Error al registrar el usuario en la base de datos' }
+    }
 
+    try {
         await signIn("credentials", {
             email,
             password,
             redirect: false
         });
-
         return { success: true }
     } catch (err: any) {
-        console.error('Error in registerUser:', err)
-        if (err.code === 'P2002') return { error: 'El email ya existe' }
-        return { error: 'Error al registrar el usuario: ' + (err.message || 'Error desconocido') }
+        console.error('Error in signIn during registration:', err)
+        // In Auth.js v5, signIn can throw a redirect. We should check if it's a redirect or an actual error.
+        if (err.message === 'NEXT_REDIRECT') {
+            throw err;
+        }
+        return { error: 'Usuario creado pero no se pudo iniciar sesión automáticamente' }
     }
 }
