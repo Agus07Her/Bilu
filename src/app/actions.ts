@@ -19,6 +19,8 @@ export async function addTransaction(formData: FormData) {
     const monto = parseFloat(montoStr)
     const categoriaId = categoriaIdStr ? parseInt(categoriaIdStr) : null
 
+    console.log('[Server] addTransaction:', { tipo, monto, descripcion, categoriaId, userId: session.user.id })
+
     try {
         await prisma.transacciones.create({
             data: {
@@ -52,6 +54,8 @@ export async function updateTransaction(formData: FormData) {
     const monto = parseFloat(montoStr)
     const categoriaId = categoriaIdStr ? parseInt(categoriaIdStr) : null
 
+    console.log('[Server] updateTransaction:', { id, tipo, monto, descripcion, categoriaId, userId: session.user.id })
+
     try {
         await prisma.transacciones.update({
             where: { id, userId: parseInt(session.user.id) },
@@ -74,6 +78,8 @@ export async function updateTransaction(formData: FormData) {
 export async function deleteTransaction(id: number) {
     const session = await auth()
     if (!session?.user?.id) return { error: 'No autorizado' }
+
+    console.log('[Server] deleteTransaction:', { id, userId: session.user.id })
 
     try {
         await prisma.transacciones.delete({

@@ -32,10 +32,11 @@ export default function TransactionsManager({ txs: initialTxs, categorias, userI
             offlineItems.forEach(off => {
                 if (off.action === 'create') {
                     // Evitar duplicar si el server ya lo envió (revalidación)
-                    const exists = combined.some(t => t.descripcion === off.descripcion && t.monto === off.monto)
+                    // Usamos una combinación de descripción y monto como clave temporal
+                    const exists = combined.some(t => t.descripcion === off.descripcion && Number(t.monto) === off.monto && !t.isOffline)
                     if (!exists) {
-                        combined = [{
-                            id: off.id!, // ID local
+                        combined.unshift({
+                            id: off.id!, // ID local de Dexie
                             tipo: off.tipo,
                             monto: off.monto,
                             descripcion: off.descripcion,
@@ -43,8 +44,8 @@ export default function TransactionsManager({ txs: initialTxs, categorias, userI
                             categoria: categorias.find(c => c.id === off.categoria_id) || null,
                             fecha: off.fecha,
                             userId: off.userId,
-                            isOffline: true // Marcamos como local
-                        } as any, ...combined]
+                            isOffline: true
+                        } as Transaccion)
                     }
                 } else if (off.action === 'update' && off.server_id) {
                     combined = combined.map(t => t.id === off.server_id ? {
