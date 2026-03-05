@@ -20,6 +20,7 @@ export default function TransactionModal({ categorias, editTransactionData, onCl
     const [categoriaId, setCategoriaId] = useState('')
     const [editingId, setEditingId] = useState<number | null>(null)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
 
     // Sincronizar con editTransactionData cuando cambia
     useEffect(() => {
@@ -141,23 +142,61 @@ export default function TransactionModal({ categorias, editTransactionData, onCl
                             </div>
 
                             {tipo === 'Gasto' && (
-                                <div>
+                                <div className="relative">
                                     <label className="block text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 ml-1">Seleccionar Categoría</label>
+
+                                    {/* Input oculto para que el FormData lo reciba correctamente */}
+                                    <input type="hidden" name="categoriaId" value={categoriaId} />
+
                                     <div className="relative">
-                                        <select
-                                            name="categoriaId"
-                                            value={categoriaId}
-                                            onChange={(e) => setCategoriaId(e.target.value)}
-                                            className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl outline-none font-bold text-gray-800 dark:text-gray-200 transition-all appearance-none cursor-pointer focus:ring-2 focus:ring-blue-500/50"
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                                            className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl outline-none font-bold text-gray-800 dark:text-gray-200 transition-all flex justify-between items-center hover:bg-gray-100 dark:hover:bg-white/10 active:scale-[0.98]"
                                         >
-                                            <option value="">Sin Categoría</option>
-                                            {categorias.map(cat => (
-                                                <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
-                                        </div>
+                                            <span className="truncate">
+                                                {categoriaId ? (categorias.find(c => c.id.toString() === categoriaId)?.nombre || 'Categoría') : 'Sin Categoría'}
+                                            </span>
+                                            <div className={`transition-transform duration-200 ${showCategoryDropdown ? 'rotate-180' : ''}`}>
+                                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                        </button>
+
+                                        {showCategoryDropdown && (
+                                            <>
+                                                {/* Backdrop invisible para cerrar al hacer click fuera */}
+                                                <div
+                                                    className="fixed inset-0 z-[10]"
+                                                    onClick={() => setShowCategoryDropdown(false)}
+                                                ></div>
+
+                                                <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-white/10 rounded-2xl shadow-2xl z-[20] overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-60 overflow-y-auto">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setCategoriaId('')
+                                                            setShowCategoryDropdown(false)
+                                                        }}
+                                                        className={`w-full text-left p-4 text-sm font-bold transition-colors hover:bg-gray-50 dark:hover:bg-white/5 border-b border-gray-50 dark:border-white/5 ${!categoriaId ? 'text-blue-500 bg-blue-50/30 dark:bg-blue-500/10' : 'text-gray-600 dark:text-gray-400'}`}
+                                                    >
+                                                        Sin Categoría
+                                                    </button>
+                                                    {categorias.map(cat => (
+                                                        <button
+                                                            key={cat.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setCategoriaId(cat.id.toString())
+                                                                setShowCategoryDropdown(false)
+                                                            }}
+                                                            className={`w-full text-left p-4 text-sm font-bold transition-colors hover:bg-gray-50 dark:hover:bg-white/5 border-b border-gray-50 last:border-0 dark:border-white/5 ${categoriaId === cat.id.toString() ? 'text-blue-500 bg-blue-50/30 dark:bg-blue-500/10' : 'text-gray-600 dark:text-gray-400'}`}
+                                                        >
+                                                            {cat.nombre}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                     {categorias.length === 0 && (
                                         <p className="text-[10px] text-orange-500 font-bold mt-2 ml-1 uppercase tracking-tighter">No tienes categorías. Créalas en el menú de usuario.</p>
