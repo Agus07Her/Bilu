@@ -13,4 +13,5 @@ export interface Transaccion {
     categoria_id?: number | null
     categoria?: Categoria | null
     isOffline?: boolean
+    server_id?: number | null
 }

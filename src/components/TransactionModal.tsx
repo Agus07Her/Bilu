@@ -28,6 +28,7 @@ export default function TransactionModal({ categorias, editTransactionData, onCl
     const [editingId, setEditingId] = useState<number | null>(null)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
+    const router = useRouter()
 
     // Sincronizar con editTransactionData cuando cambia
     useEffect(() => {
@@ -59,26 +60,88 @@ export default function TransactionModal({ categorias, editTransactionData, onCl
         const amount = parseFloat(montoInput.replace(/\./g, '').replace(',', '.'))
         const catIdInt = categoriaId ? parseInt(categoriaId) : null
 
-        // --- Paso 1: Guardar en Dexie inmediatamente (Optimista y Seguro) ---
-        // Esto garantiza que el icono de Sync aparezca al instante y los datos no se pierdan
+        // --- Paso 1: Actualización Optimista de la UI ---
+        const tempId = Date.now();
+        if (currentTxs && onTransactionChange) {
+            let nextTxs = [...currentTxs];
+            if (editingId) {
+                nextTxs = nextTxs.map(t => t.id === editingId ? {
+                    ...t,
+                    monto: amount,
+                    descripcion: descripcion,
+                    categoria_id: catIdInt,
+                    categoria: categorias.find(c => c.id === catIdInt) || null,
+                    isOffline: true
+                } : t);
+            } else {
+                const tempTx: Transaccion = {
+                    id: tempId,
+                    tipo,
+                    monto: amount,
+                    descripcion,
+                    categoria_id: catIdInt,
+                    categoria: categorias.find(c => c.id === catIdInt) || null,
+                    fecha: new Date(),
+                    userId,
+                    isOffline: true
+                };
+                nextTxs = [tempTx, ...nextTxs];
+            }
+            onTransactionChange(nextTxs);
+        }
 
-        let offlineId: number | undefined;
+        closeModal();
 
+        // --- Paso 2: Flujo Condicional ---
+        if (navigator.onLine) {
+            try {
+                const serverFormData = new FormData();
+                serverFormData.set('monto', amount.toString());
+                serverFormData.set('descripcion', descripcion || '');
+                serverFormData.set('categoriaId', (catIdInt || '').toString());
+                serverFormData.set('tipo', tipo);
+
+                let res;
+                if (editingId && !editTransactionData?.isOffline) {
+                    serverFormData.append('id', editingId.toString());
+                    res = await updateTransaction(serverFormData);
+                } else if (editTransactionData?.isOffline) {
+                    if (editTransactionData.server_id) {
+                        serverFormData.append('id', editTransactionData.server_id.toString());
+                        res = await updateTransaction(serverFormData);
+                    } else {
+                        res = await addTransaction(serverFormData);
+                    }
+                    if (!res?.error) {
+                        await db.unsyncedTransactions.delete(editTransactionData.id as number);
+                    }
+                } else {
+                    res = await addTransaction(serverFormData);
+                }
+
+                if (res?.error) throw new Error(res.error);
+                router.refresh();
+            } catch (error) {
+                console.warn("[Cloud] Error, pasando a modo Offline:", error);
+                await saveToOffline(amount, catIdInt);
+            }
+        } else {
+            await saveToOffline(amount, catIdInt);
+        }
+    }
+
+    const saveToOffline = async (amount: number, catIdInt: number | null) => {
         if (editTransactionData?.isOffline) {
-            // Caso A: Editando un item que YA está en la lista de pendientes offline
-            offlineId = editTransactionData.id;
-            await db.unsyncedTransactions.update(offlineId, {
+            await db.unsyncedTransactions.update(editTransactionData.id as number, {
                 tipo,
                 monto: amount,
                 descripcion,
                 categoria_id: catIdInt,
                 timestamp: Date.now()
-                // Action se mantiene como 'create' o 'update' según estaba
             });
         } else {
-            // Caso B: Nuevo item o editando uno que ya está en el servidor
-            offlineId = await db.unsyncedTransactions.add({
-                server_id: editingId || undefined, // undefined if new
+            await db.unsyncedTransactions.add({
+                server_id: editingId || undefined,
                 tipo,
                 monto: amount,
                 descripcion,
@@ -87,51 +150,7 @@ export default function TransactionModal({ categorias, editTransactionData, onCl
                 userId,
                 action: editingId ? 'update' : 'create',
                 timestamp: Date.now()
-            }) as number;
-        }
-
-        // Cerramos el modal de una vez para dar el feeling de rapidez (Optimista)
-        closeModal()
-
-        // --- Paso 2: Intentar Sincronizar inmediatamente si hay red ---
-        // Si no hay red, syncTransactions retornará enseguida y el item se queda en Dexie con el icono de Sync.
-        if (navigator.onLine) {
-            // Esperamos un momento para que el usuario perciba la acción (opcional, pero ayuda a evitar race conditions de UI)
-            await syncWithServer(offlineId);
-        }
-    }
-
-    const router = useRouter();
-
-    const syncWithServer = async (offlineId: number) => {
-        const item = await db.unsyncedTransactions.get(offlineId);
-        if (!item) return;
-
-        try {
-            const serverFormData = new FormData();
-            serverFormData.set('monto', item.monto.toString());
-            serverFormData.set('descripcion', item.descripcion || '');
-            serverFormData.set('categoriaId', (item.categoria_id || '').toString());
-            serverFormData.set('tipo', item.tipo);
-
-            let res;
-            if (item.action === 'create') {
-                res = await addTransaction(serverFormData);
-            } else if (item.action === 'update' && item.server_id) {
-                serverFormData.append('id', item.server_id.toString());
-                res = await updateTransaction(serverFormData);
-            } else if (item.action === 'delete' && item.server_id) {
-                res = await deleteTransaction(item.server_id);
-            }
-
-            if (res?.error) throw new Error(res.error);
-
-            // Si tuvo éxito el servidor, limpiamos local y refrescamos
-            await db.unsyncedTransactions.delete(offlineId);
-            router.refresh();
-        } catch (error) {
-            console.log("[Sync] Error silencioso al intentar sincronizar item:", error);
-            // No hacemos nada, ya quedó guardado en Dexie y se reintentará luego
+            });
         }
     }
 
@@ -143,15 +162,39 @@ export default function TransactionModal({ categorias, editTransactionData, onCl
     const confirmDelete = async () => {
         if (!editingId) return
 
-        let offlineId: number | undefined;
+        // --- Paso 1: Optimistic UI ---
+        if (currentTxs && onTransactionChange) {
+            const nextTxs = currentTxs.filter(t => t.id !== editingId)
+            onTransactionChange(nextTxs)
+        }
 
-        if (editTransactionData?.isOffline) {
-            // Si el item solo existe en Dexie, simplemente lo borramos de allí y ya
-            await db.unsyncedTransactions.delete(editTransactionData.id as number);
-            router.refresh();
+        setShowDeleteConfirm(false)
+        closeModal()
+
+        // --- Paso 2: Flujo Condicional ---
+        if (navigator.onLine) {
+            try {
+                if (editTransactionData?.isOffline) {
+                    await db.unsyncedTransactions.delete(editTransactionData.id as number);
+                } else {
+                    const res = await deleteTransaction(editingId);
+                    if (res?.error) throw new Error(res.error);
+                }
+                router.refresh();
+            } catch (error) {
+                console.warn("[Cloud] Error al borrar, pasando a modo Offline:", error);
+                await saveDeleteOffline();
+            }
         } else {
-            // Si el item existe en el servidor, agregamos una acción de 'delete' a la cola
-            offlineId = await db.unsyncedTransactions.add({
+            await saveDeleteOffline();
+        }
+    }
+
+    const saveDeleteOffline = async () => {
+        if (editTransactionData?.isOffline) {
+            await db.unsyncedTransactions.delete(editTransactionData.id as number);
+        } else if (editingId) {
+            await db.unsyncedTransactions.add({
                 server_id: editingId,
                 tipo,
                 monto: parseFloat(montoInput.replace(/\./g, '').replace(',', '.')),
@@ -161,15 +204,7 @@ export default function TransactionModal({ categorias, editTransactionData, onCl
                 userId,
                 action: 'delete',
                 timestamp: Date.now()
-            }) as number;
-        }
-
-        setShowDeleteConfirm(false)
-        closeModal()
-
-        // Si es una eliminación de servidor, intentamos sincronizar
-        if (offlineId && navigator.onLine) {
-            await syncWithServer(offlineId);
+            });
         }
     }
 

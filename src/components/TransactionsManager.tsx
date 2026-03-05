@@ -21,32 +21,22 @@ export default function TransactionsManager({ txs: initialTxs, categorias, userI
 
     // Sincronizar localTxs con initialTxs + Datos Offline
     useEffect(() => {
-        // Combinar initialTxs con items offline
-        // Si un item offline es una edición (server_id), reemplazamos el original
-        // Si es una creación (sin server_id), lo agregamos al principio
-        // Si es una eliminación (action === delete), lo quitamos del listado
-
         let combined = [...initialTxs]
 
         if (offlineItems) {
             offlineItems.forEach(off => {
                 if (off.action === 'create') {
-                    // Dedup robusto: Comparamos normalizando valores
-                    const exists = combined.some(t => {
-                        // Solo comparamos con items que NO son offline (los reales del servidor)
+                    // Dedup: Si ya está en el servidor (initialTxs), no lo agregamos desde Dexie
+                    const isAlreadyInServer = combined.some(t => {
                         if ((t as any).isOffline) return false;
-
-                        const m1 = Math.round(Number(t.monto));
-                        const m2 = Math.round(Number(off.monto));
+                        const m1 = Number(t.monto);
+                        const m2 = Number(off.monto);
                         const d1 = (t.descripcion || '').trim().toLowerCase();
                         const d2 = (off.descripcion || '').trim().toLowerCase();
-                        const c1 = t.categoria_id || null;
-                        const c2 = off.categoria_id || null;
-
-                        return m1 === m2 && d1 === d2 && t.tipo === off.tipo && c1 === c2;
+                        return m1 === m2 && d1 === d2 && t.tipo === off.tipo;
                     });
 
-                    if (!exists) {
+                    if (!isAlreadyInServer) {
                         combined.unshift({
                             id: off.id!,
                             tipo: off.tipo,
@@ -83,6 +73,7 @@ export default function TransactionsManager({ txs: initialTxs, categorias, userI
     }
 
     const onTransactionChange = (newTxs: Transaccion[]) => {
+        // Mantenemos esto para actualizaciones optimistas instantáneas desde el modal
         setLocalTxs(newTxs)
     }
 
