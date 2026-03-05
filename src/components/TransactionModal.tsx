@@ -126,6 +126,7 @@ export default function TransactionModal({ categorias, editTransactionData, onCl
                                     <input
                                         type="text"
                                         name="monto"
+                                        inputMode="numeric"
                                         value={montoInput}
                                         onChange={(e) => {
                                             const val = e.target.value.replace(/\D/g, '')
