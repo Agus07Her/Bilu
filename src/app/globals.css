@@ -37,3 +37,16 @@ body {
 .pt-safe {
   padding-top: var(--safe-area-top);
 }
+
+/* Ocultar barra de scroll globalmente para un look de App nativa */
+* {
+  -ms-overflow-style: none;
+  /* IE y Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari y Opera */
+}
