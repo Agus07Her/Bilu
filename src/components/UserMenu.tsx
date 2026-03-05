@@ -32,7 +32,7 @@ export default function UserMenu({ user }: UserMenuProps) {
         : user.email?.[0].toUpperCase() || 'U'
 
     return (
-        <div className="relative z-[100]" ref={menuRef}>
+        <div className="relative z-10" ref={menuRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="flex items-center gap-2 group outline-none"

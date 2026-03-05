@@ -81,7 +81,7 @@ export default function TransactionModal({ categorias, editTransactionData, onCl
         <>
             {/* Solo mostramos los botones de creación si no estamos editando (cuando se usa como componente estático) */}
             {!editTransactionData && (
-                <div className="fixed bottom-0 left-0 right-0 p-4 pb-8 bg-gradient-to-t from-white via-white/80 to-transparent dark:from-zinc-950 dark:via-zinc-950/80 dark:to-transparent backdrop-blur-sm z-[100] sm:relative sm:bg-none sm:backdrop-blur-none sm:p-0 sm:pb-0 sm:mb-6">
+                <div className="fixed bottom-0 left-0 right-0 p-4 pb-8 bg-gradient-to-t from-white via-white/80 to-transparent dark:from-zinc-950 dark:via-zinc-950/80 dark:to-transparent backdrop-blur-sm z-20 sm:relative sm:bg-none sm:backdrop-blur-none sm:p-0 sm:pb-0 sm:mb-6">
                     <div className="max-w-md mx-auto flex gap-4 w-full justify-between items-center">
                         <button
                             onClick={() => openModal('Ingreso')}
@@ -102,7 +102,7 @@ export default function TransactionModal({ categorias, editTransactionData, onCl
             )}
 
             {isOpen && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 z-[150] animate-in fade-in duration-200">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 z-[200] animate-in fade-in duration-200">
                     <div className="bg-white dark:bg-zinc-950 rounded-t-[32px] sm:rounded-[32px] w-full max-w-md p-6 sm:p-8 shadow-2xl relative animate-in slide-in-from-bottom duration-300 border border-white/5">
                         <button
                             onClick={closeModal}
