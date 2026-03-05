@@ -31,12 +31,24 @@ export default function TransactionsManager({ txs: initialTxs, categorias, userI
         if (offlineItems) {
             offlineItems.forEach(off => {
                 if (off.action === 'create') {
-                    // Evitar duplicar si el server ya lo envió (revalidación)
-                    // Usamos una combinación de descripción y monto como clave temporal
-                    const exists = combined.some(t => t.descripcion === off.descripcion && Number(t.monto) === off.monto && !t.isOffline)
+                    // Dedup robusto: Comparamos normalizando valores
+                    const exists = combined.some(t => {
+                        // Solo comparamos con items que NO son offline (los reales del servidor)
+                        if ((t as any).isOffline) return false;
+
+                        const m1 = Math.round(Number(t.monto));
+                        const m2 = Math.round(Number(off.monto));
+                        const d1 = (t.descripcion || '').trim().toLowerCase();
+                        const d2 = (off.descripcion || '').trim().toLowerCase();
+                        const c1 = t.categoria_id || null;
+                        const c2 = off.categoria_id || null;
+
+                        return m1 === m2 && d1 === d2 && t.tipo === off.tipo && c1 === c2;
+                    });
+
                     if (!exists) {
                         combined.unshift({
-                            id: off.id!, // ID local de Dexie
+                            id: off.id!,
                             tipo: off.tipo,
                             monto: off.monto,
                             descripcion: off.descripcion,
