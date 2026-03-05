@@ -120,13 +120,6 @@ export async function getCategorias() {
     })
 }
 
-import { sendVerificationEmail, sendPasswordResetEmail } from '@/lib/mail'
-
-// Helper para generar código de 6 dígitos
-function generateCode() {
-    return Math.floor(100000 + Math.random() * 900000).toString()
-}
-
 export async function registerUser(formData: FormData) {
     const nombre = formData.get('nombre') as string
     const email = formData.get('email') as string
@@ -137,10 +130,6 @@ export async function registerUser(formData: FormData) {
     const hashedPassword = await bcrypt.hash(password, 10)
 
     try {
-        const existingUser = await prisma.user.findUnique({ where: { email } })
-        if (existingUser) return { error: 'El email ya está registrado' }
-
-        // Crear usuario sin verificar
         await prisma.user.create({
             data: {
                 nombre,
@@ -148,92 +137,26 @@ export async function registerUser(formData: FormData) {
                 password: hashedPassword,
             },
         })
-
-        // Generar token de verificación
-        const token = generateCode()
-        const expires = new Date(new Date().getTime() + 3600 * 1000) // 1 hora
-
-        await prisma.verificationToken.create({
-            data: {
-                email,
-                token,
-                expires,
-            }
-        })
-
-        // Enviar correo
-        await sendVerificationEmail(email, token)
-
-        return { success: true, redirectTo: `/verify-email?email=${encodeURIComponent(email)}` }
     } catch (err: any) {
-        console.error('Error in registerUser:', err)
-        return { error: 'Error al registrar el usuario' }
+        console.error('Error creating user in registerUser:', err)
+        if (err.code === 'P2002') return { error: 'El email ya existe' }
+        return { error: 'Error al registrar el usuario en la base de datos' }
     }
-}
 
-export async function verifyEmailCode(email: string, token: string) {
     try {
-        const storedToken = await prisma.verificationToken.findFirst({
-            where: { email, token }
-        })
-
-        if (!storedToken || new Date() > storedToken.expires) {
-            return { error: 'Código inválido o expirado' }
-        }
-
-        await prisma.user.update({
-            where: { email },
-            data: { emailVerified: new Date() }
-        })
-
-        await prisma.verificationToken.delete({
-            where: { id: storedToken.id }
-        })
-
+        await signIn("credentials", {
+            email,
+            password,
+            redirect: false
+        });
         return { success: true }
-    } catch (error) {
-        return { error: 'Error al verificar el código' }
+    } catch (err: any) {
+        console.error('Error in signIn during registration:', err)
+        // In Auth.js v5, signIn can throw a redirect. We should check if it's a redirect or an actual error.
+        if (err.message === 'NEXT_REDIRECT') {
+            throw err;
+        }
+        return { error: 'Usuario creado pero no se pudo iniciar sesión automáticamente' }
     }
 }
 
-export async function requestPasswordReset(email: string) {
-    const user = await prisma.user.findUnique({ where: { email } })
-    if (!user) return { error: 'Si el correo existe, recibirás un código' }
-
-    const token = generateCode()
-    const expires = new Date(new Date().getTime() + 3600 * 1000)
-
-    await prisma.passwordResetToken.create({
-        data: { email, token, expires }
-    })
-
-    await sendPasswordResetEmail(email, token)
-    return { success: true }
-}
-
-export async function resetPassword(email: string, token: string, newPassword: string) {
-    try {
-        const storedToken = await prisma.passwordResetToken.findFirst({
-            where: { email, token }
-        })
-
-        if (!storedToken || new Date() > storedToken.expires) {
-            return { error: 'Código inválido o expirado' }
-        }
-
-        const hashedPassword = await bcrypt.hash(newPassword, 10)
-
-        await prisma.user.update({
-            where: { email },
-            data: { password: hashedPassword }
-        })
-
-        await prisma.passwordResetToken.delete({
-            where: { id: storedToken.id }
-        })
-
-        return { success: true }
-    } catch (error) {
-        return { error: 'Error al restablecer la contraseña' }
-    }
-}

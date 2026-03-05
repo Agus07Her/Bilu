@@ -25,11 +25,7 @@ export default function LoginPage() {
             })
 
             if (result?.error) {
-                if (result.error.includes("EMAIL_NOT_VERIFIED")) {
-                    router.push(`/verify-email?email=${encodeURIComponent(email)}`)
-                } else {
-                    setError('Email o contraseña incorrectos')
-                }
+                setError('Email o contraseña incorrectos')
             } else {
                 router.push('/')
                 router.refresh()
@@ -41,30 +37,14 @@ export default function LoginPage() {
         }
     }
 
-    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
-    const verified = searchParams?.get('verified')
-    const reset = searchParams?.get('reset')
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-slate-900 to-black flex items-center justify-center p-4">
             <div className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-2xl shadow-2xl">
                 <h1 className="text-3xl font-bold text-white mb-2 text-center uppercase tracking-widest">INGRESAR</h1>
                 <p className="text-blue-200/60 mb-8 text-center text-sm">Gestiona tus ingresos y gastos de forma privada</p>
 
-                {verified && (
-                    <div className="bg-emerald-500/20 border border-emerald-500/50 text-emerald-200 p-3 rounded-lg mb-6 text-sm text-center font-bold">
-                        ¡Cuenta verificada! Ya puedes iniciar sesión.
-                    </div>
-                )}
-
-                {reset && (
-                    <div className="bg-emerald-500/20 border border-emerald-500/50 text-emerald-200 p-3 rounded-lg mb-6 text-sm text-center font-bold">
-                        Contraseña actualizada. Inicia sesión con tus nuevas credenciales.
-                    </div>
-                )}
-
                 {error && (
-                    <div className="bg-red-500/20 border border-red-500/50 text-red-200 p-3 rounded-lg mb-6 text-sm text-center">
+                    <div className="bg-red-500/20 border border-red-500/50 text-red-200 p-3 rounded-lg mb-6 text-sm">
                         {error}
                     </div>
                 )}
@@ -82,12 +62,7 @@ export default function LoginPage() {
                         />
                     </div>
                     <div>
-                        <div className="flex justify-between items-center mb-2 ml-1">
-                            <label className="text-white/80 block text-xs font-medium uppercase tracking-wider">Contraseña</label>
-                            <Link href="/forgot-password" className="text-[10px] text-blue-400 hover:text-blue-300 uppercase font-black tracking-tighter">
-                                ¿Olvidaste tu contraseña?
-                            </Link>
-                        </div>
+                        <label className="text-white/80 block text-xs font-medium uppercase tracking-wider mb-2 ml-1">Contraseña</label>
                         <input
                             type="password"
                             required
