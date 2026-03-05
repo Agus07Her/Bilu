@@ -28,6 +28,8 @@ export default function RegisterPage() {
 
         if (result?.error) {
             setError(result.error)
+        } else if (result?.redirectTo) {
+            router.push(result.redirectTo)
         } else if (result?.success) {
             router.push('/')
             router.refresh()
