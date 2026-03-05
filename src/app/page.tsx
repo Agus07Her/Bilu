@@ -95,7 +95,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       <main className="w-full max-w-md bg-white dark:bg-zinc-950 min-h-screen shadow-2xl relative flex flex-col pb-32 sm:pb-20 overflow-hidden">
 
         {/* Header con Logout Desplegable */}
-        <div className="bg-gradient-to-b from-blue-700 to-blue-900 dark:from-blue-900 dark:to-blue-950 text-white pt-10 pb-10 px-6 rounded-b-[40px] shadow-lg relative flex-shrink-0 transition-all duration-300 z-[50]">
+        <div className="bg-gradient-to-b from-blue-700 to-blue-900 dark:from-blue-900 dark:to-blue-950 text-white pt-safe pb-10 px-6 rounded-b-[40px] shadow-lg relative flex-shrink-0 transition-all duration-300 z-[50]">
+          <div className="pt-10"></div> {/* Espaciado base adicional al safe area */}
           <div className="absolute inset-0 overflow-hidden rounded-b-[40px] pointer-events-none">
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
           </div>
