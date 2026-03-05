@@ -15,7 +15,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Bilu - Finanzas Personales",
   description: "Gestiona tus ingresos y gastos de forma privada y eficiente con Bilu.",
-  themeColor: "#1d4ed8",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

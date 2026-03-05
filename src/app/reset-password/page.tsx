@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { resetPassword } from '../actions'
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const emailParam = searchParams.get('email') || ''
@@ -78,5 +78,13 @@ export default function ResetPasswordPage() {
                 </form>
             </div>
         </div>
+    )
+}
+
+export default function ResetPasswordPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-gray-50 dark:bg-zinc-950 flex items-center justify-center">Cargando...</div>}>
+            <ResetPasswordContent />
+        </Suspense>
     )
 }

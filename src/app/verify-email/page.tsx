@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { verifyEmailCode } from '../actions'
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const email = searchParams.get('email') || ''
@@ -38,7 +38,7 @@ export default function VerifyEmailPage() {
                         </svg>
                     </div>
                     <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-2">Verifica tu cuenta</h1>
-                    <p className="text-gray-500 dark:text-gray-400 font-medium">Hemos enviado un código a <span className="text-blue-600 font-bold">{email}</span></p>
+                    <p className="text-gray-500 dark:text-gray-400 font-medium text-center break-all">Hemos enviado un código a <br /><span className="text-blue-600 font-bold">{email}</span></p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -49,7 +49,7 @@ export default function VerifyEmailPage() {
                             maxLength={6}
                             value={code}
                             onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                            className="w-full p-5 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-blue-500 rounded-2xl outline-none font-black text-3xl text-center tracking-[10px] text-gray-900 dark:text-white transition-all"
+                            className="w-full p-5 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-blue-500 rounded-2xl outline-none font-black text-3xl text-center tracking-[10px] text-gray-900 dark:text-white transition-all shadow-inner"
                             required
                         />
                     </div>
@@ -68,9 +68,17 @@ export default function VerifyEmailPage() {
                 </form>
 
                 <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400 font-medium">
-                    ¿No recibiste el código? <button className="text-blue-600 font-bold hover:underline">Reenviar</button>
+                    ¿No recibiste el código? <button type="button" className="text-blue-600 font-bold hover:underline">Reenviar</button>
                 </p>
             </div>
         </div>
+    )
+}
+
+export default function VerifyEmailPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-gray-50 dark:bg-zinc-950 flex items-center justify-center">Cargando...</div>}>
+            <VerifyEmailContent />
+        </Suspense>
     )
 }
