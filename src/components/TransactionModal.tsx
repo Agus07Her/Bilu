@@ -6,13 +6,18 @@ import ConfirmDialog from './ConfirmDialog'
 
 import { Transaccion, Categoria } from '@/types'
 
+import { addOfflineTransaction } from '@/lib/syncService'
+
 interface TransactionModalProps {
     categorias: Categoria[]
-    editTransactionData?: Transaccion | null // Opcional, para cuando se abre desde afuera para editar
+    editTransactionData?: Transaccion | null
     onClose?: () => void
+    onTransactionChange?: (newTxs: Transaccion[]) => void
+    currentTxs?: Transaccion[]
+    userId: number
 }
 
-export default function TransactionModal({ categorias, editTransactionData, onClose }: TransactionModalProps) {
+export default function TransactionModal({ categorias, editTransactionData, onClose, onTransactionChange, currentTxs, userId }: TransactionModalProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [tipo, setTipo] = useState<'Ingreso' | 'Gasto'>('Ingreso')
     const [montoInput, setMontoInput] = useState('')
@@ -49,20 +54,74 @@ export default function TransactionModal({ categorias, editTransactionData, onCl
     }
 
     const actionWithClose = async (formData: FormData) => {
-        try {
-            formData.set('monto', montoInput.replace(/\./g, ''))
+        // --- Optimistic UI Update ---
+        const amount = parseFloat(montoInput.replace(/\./g, '').replace(',', '.'))
+        const catIdInt = categoriaId ? parseInt(categoriaId) : null
+
+        // Creamos una copia de las txs actuales y la actualizamos localmente al instante
+        if (currentTxs && onTransactionChange) {
+            let nextTxs = [...currentTxs]
 
             if (editingId) {
-                formData.append('id', editingId.toString())
-                await updateTransaction(formData)
+                // Modo Edición Optimista
+                nextTxs = nextTxs.map(t => t.id === editingId ? {
+                    ...t,
+                    monto: amount,
+                    descripcion: descripcion,
+                    categoria_id: catIdInt,
+                    categoria: categorias.find(c => c.id === catIdInt) || null,
+                    tipo: tipo
+                } : t)
             } else {
-                formData.append('tipo', tipo)
-                await addTransaction(formData)
+                // Modo Creación Optimista (ID temporal basado en timestamp)
+                const tempTx: Transaccion = {
+                    id: Date.now(), // ID temporal
+                    tipo,
+                    monto: amount,
+                    descripcion,
+                    categoria_id: catIdInt,
+                    categoria: categorias.find(c => c.id === catIdInt) || null,
+                    fecha: new Date(),
+                    userId: userId
+                }
+                nextTxs = [tempTx, ...nextTxs]
             }
-            closeModal()
+            onTransactionChange(nextTxs)
+        }
+
+        // Cerramos el modal de una vez para dar el feeling de rapidez (Optimista)
+        closeModal()
+
+        // --- Intento de Sincronización ---
+        try {
+            const serverFormData = new FormData();
+            serverFormData.set('monto', amount.toString());
+            serverFormData.set('descripcion', descripcion);
+            serverFormData.set('categoriaId', (catIdInt || '').toString());
+            serverFormData.set('tipo', tipo);
+
+            if (editingId) {
+                serverFormData.append('id', editingId.toString());
+                const res = await updateTransaction(serverFormData);
+                if (res?.error) throw new Error(res.error);
+            } else {
+                const res = await addTransaction(serverFormData);
+                if (res?.error) throw new Error(res.error);
+            }
         } catch (error) {
-            console.error("Error al guardar:", error)
-            alert("Ocurrió un error al guardar. Verifica los datos.")
+            console.warn("Sin conexión o error de servidor. Guardando en modo Offline local.", error);
+
+            // Si el servidor falla (ej. sin internet), lo metemos en la cola de Dexie
+            await addOfflineTransaction({
+                server_id: editingId || undefined,
+                tipo,
+                monto: amount,
+                descripcion,
+                categoria_id: catIdInt,
+                fecha: new Date(),
+                userId,
+                action: editingId ? 'update' : 'create'
+            });
         }
     }
 
@@ -73,9 +132,33 @@ export default function TransactionModal({ categorias, editTransactionData, onCl
 
     const confirmDelete = async () => {
         if (!editingId) return
-        await deleteTransaction(editingId)
+
+        // --- Optimistic UI Update ---
+        if (currentTxs && onTransactionChange) {
+            const nextTxs = currentTxs.filter(t => t.id !== editingId)
+            onTransactionChange(nextTxs)
+        }
+
         setShowDeleteConfirm(false)
         closeModal()
+
+        // --- Intento de Sincronización ---
+        try {
+            const res = await deleteTransaction(editingId)
+            if (res?.error) throw new Error(res.error)
+        } catch (error) {
+            console.warn("Sin conexión. Guardando eliminación en modo Offline.", error)
+            await addOfflineTransaction({
+                server_id: editingId,
+                tipo,
+                monto: parseFloat(montoInput.replace(/\./g, '')),
+                descripcion,
+                categoria_id: categoriaId ? parseInt(categoriaId) : null,
+                fecha: new Date(),
+                userId,
+                action: 'delete'
+            })
+        }
     }
 
     return (

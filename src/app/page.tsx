@@ -138,7 +138,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
           <CategoryBreakdown categoriesBreakdown={categoriesBreakdown} total_gastos={total_gastos} />
 
           {/* Gestión de Transacciones (Lista + Modales) */}
-          <TransactionsManager txs={txs} categorias={userCategorias} />
+          <TransactionsManager txs={txs} categorias={userCategorias} userId={userId} />
         </div>
       </main>
     </div>

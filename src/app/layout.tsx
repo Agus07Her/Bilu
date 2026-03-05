@@ -34,6 +34,8 @@ export const viewport = {
   themeColor: "#1d4ed8",
 };
 
+import OfflineMonitor from "@/components/OfflineMonitor";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -44,6 +46,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <OfflineMonitor />
         {children}
       </body>
     </html>
