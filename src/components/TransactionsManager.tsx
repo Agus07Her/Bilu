@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import TransactionModal from './TransactionModal'
 import { Transaccion, Categoria } from '@/types'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/lib/db'
 
 interface TransactionsManagerProps {
@@ -15,21 +16,22 @@ export default function TransactionsManager({ txs: initialTxs, categorias, userI
     const [localTxs, setLocalTxs] = useState<Transaccion[]>(initialTxs)
     const [editingTx, setEditingTx] = useState<Transaccion | null>(null)
 
+    // Obtenemos los items de IndexedDB de forma reactiva
+    const offlineItems = useLiveQuery(() => db.unsyncedTransactions.toArray())
+
     // Sincronizar localTxs con initialTxs + Datos Offline
     useEffect(() => {
-        const fetchOfflineData = async () => {
-            const offlineItems = await db.unsyncedTransactions.toArray()
+        // Combinar initialTxs con items offline
+        // Si un item offline es una edición (server_id), reemplazamos el original
+        // Si es una creación (sin server_id), lo agregamos al principio
+        // Si es una eliminación (action === delete), lo quitamos del listado
 
-            // Combinar initialTxs con items offline
-            // Si un item offline es una edición (server_id), reemplazamos el original
-            // Si es una creación (sin server_id), lo agregamos al principio
-            // Si es una eliminación (action === delete), lo quitamos del listado
+        let combined = [...initialTxs]
 
-            let combined = [...initialTxs]
-
+        if (offlineItems) {
             offlineItems.forEach(off => {
                 if (off.action === 'create') {
-                    // Evitar duplicados si ya se sincronizó por alguna razón
+                    // Evitar duplicar si el server ya lo envió (revalidación)
                     const exists = combined.some(t => t.descripcion === off.descripcion && t.monto === off.monto)
                     if (!exists) {
                         combined = [{
@@ -58,12 +60,10 @@ export default function TransactionsManager({ txs: initialTxs, categorias, userI
                     combined = combined.filter(t => t.id !== off.server_id)
                 }
             })
-
-            setLocalTxs(combined)
         }
 
-        fetchOfflineData()
-    }, [initialTxs, categorias])
+        setLocalTxs(combined)
+    }, [initialTxs, categorias, offlineItems])
 
     const handleEdit = (tx: Transaccion) => {
         setEditingTx(tx)

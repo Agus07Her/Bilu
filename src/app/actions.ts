@@ -19,17 +19,22 @@ export async function addTransaction(formData: FormData) {
     const monto = parseFloat(montoStr)
     const categoriaId = categoriaIdStr ? parseInt(categoriaIdStr) : null
 
-    await prisma.transacciones.create({
-        data: {
-            tipo,
-            monto,
-            descripcion,
-            userId: parseInt(session.user.id),
-            categoria_id: categoriaId
-        }
-    })
-
-    revalidatePath('/')
+    try {
+        await prisma.transacciones.create({
+            data: {
+                tipo,
+                monto,
+                descripcion,
+                userId: parseInt(session.user.id),
+                categoria_id: categoriaId
+            }
+        })
+        revalidatePath('/')
+        return { success: true }
+    } catch (error) {
+        console.error('Error adding transaction:', error)
+        return { error: 'Error al crear el movimiento en el servidor' }
+    }
 }
 
 export async function updateTransaction(formData: FormData) {
@@ -47,28 +52,40 @@ export async function updateTransaction(formData: FormData) {
     const monto = parseFloat(montoStr)
     const categoriaId = categoriaIdStr ? parseInt(categoriaIdStr) : null
 
-    await prisma.transacciones.update({
-        where: { id, userId: parseInt(session.user.id) },
-        data: {
-            tipo,
-            monto,
-            descripcion,
-            categoria_id: categoriaId
-        }
-    })
+    try {
+        await prisma.transacciones.update({
+            where: { id, userId: parseInt(session.user.id) },
+            data: {
+                tipo,
+                monto,
+                descripcion,
+                categoria_id: categoriaId
+            }
+        })
 
-    revalidatePath('/')
+        revalidatePath('/')
+        return { success: true }
+    } catch (error) {
+        console.error('Error updating transaction:', error)
+        return { error: 'Error al actualizar el movimiento en el servidor' }
+    }
 }
 
 export async function deleteTransaction(id: number) {
     const session = await auth()
     if (!session?.user?.id) return { error: 'No autorizado' }
 
-    await prisma.transacciones.delete({
-        where: { id, userId: parseInt(session.user.id) }
-    })
+    try {
+        await prisma.transacciones.delete({
+            where: { id, userId: parseInt(session.user.id) }
+        })
 
-    revalidatePath('/')
+        revalidatePath('/')
+        return { success: true }
+    } catch (error) {
+        console.error('Error deleting transaction:', error)
+        return { error: 'Error al eliminar el movimiento en el servidor' }
+    }
 }
 
 export async function addCategoria(nombre: string) {

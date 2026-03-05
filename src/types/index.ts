@@ -12,4 +12,5 @@ export interface Transaccion {
     userId: number
     categoria_id?: number | null
     categoria?: Categoria | null
+    isOffline?: boolean
 }

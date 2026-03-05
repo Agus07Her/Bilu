@@ -70,7 +70,8 @@ export default function TransactionModal({ categorias, editTransactionData, onCl
                     descripcion: descripcion,
                     categoria_id: catIdInt,
                     categoria: categorias.find(c => c.id === catIdInt) || null,
-                    tipo: tipo
+                    tipo: tipo,
+                    isOffline: true
                 } : t)
             } else {
                 // Modo Creación Optimista (ID temporal basado en timestamp)
@@ -82,7 +83,8 @@ export default function TransactionModal({ categorias, editTransactionData, onCl
                     categoria_id: catIdInt,
                     categoria: categorias.find(c => c.id === catIdInt) || null,
                     fecha: new Date(),
-                    userId: userId
+                    userId: userId,
+                    isOffline: true
                 }
                 nextTxs = [tempTx, ...nextTxs]
             }

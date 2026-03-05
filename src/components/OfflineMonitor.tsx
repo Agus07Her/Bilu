@@ -1,8 +1,19 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useSyncManager, syncTransactions } from '@/lib/syncService'
 
 export default function OfflineMonitor() {
+    const router = useRouter()
+
+    useSyncManager(() => router.refresh()) // Activa el escuchador de red con refresco
+
+    useEffect(() => {
+        // Al montar, intentamos enviar lo pendiente si hay red
+        syncTransactions(() => router.refresh())
+    }, [router])
+
     const [isOnline, setIsOnline] = useState(true)
 
     useEffect(() => {
